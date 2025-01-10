@@ -1,60 +1,54 @@
-package client
-
-// Handles the client logic (connecting, sending, receiving messages)
+// client.go
+package main
 
 import (
 	"bufio"
 	"fmt"
 	"net"
 	"os"
-	"strings"
 )
 
-func StartClient(serverAddress string, port int) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverAddress, port))
+func startClient(serverAddr, port string) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", serverAddr, port))
 	if err != nil {
-		fmt.Println("Error connecting to the server:", err)
-		return
+		fmt.Println("Error connecting to server:", err)
+		os.Exit(1)
 	}
 	defer conn.Close()
 
-	// Handle greeting and name input
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Welcome to TCP-Chat!")
-	fmt.Print("[ENTER YOUR NAME]: ")
-	name, _ := reader.ReadString('\n')
-	name = strings.TrimSpace(name)
-
-	if name == "" {
-		fmt.Println("Name cannot be empty. Exiting.")
-		return
+	// Receive and print welcome message
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+		if scanner.Text() == "[ENTER YOUR NAME]:" {
+			break
+		}
 	}
 
-	// Send the name to the server
+	// Read user name input
+	fmt.Print("[ENTER YOUR NAME]: ")
+	var name string
+	fmt.Scanln(&name)
+
+	// Send name to server
 	fmt.Fprintf(conn, "%s\n", name)
 
-	// Listen for incoming messages from the server
+	// Handle sending and receiving messages
 	go receiveMessages(conn)
 
-	// Sending messages to the server
+	// Read and send messages from user
 	for {
-		message, _ := reader.ReadString('\n')
-		message = strings.TrimSpace(message)
-
-		if message == "" {
-			continue
+		var message string
+		fmt.Scanln(&message)
+		if message != "" {
+			fmt.Fprintf(conn, "%s\n", message)
 		}
-
-		// Send the message to the server
-		fmt.Fprintf(conn, "%s\n", message)
 	}
 }
 
-// Receive messages from the server
 func receiveMessages(conn net.Conn) {
-	reader := bufio.NewReader(conn)
-	for {
-		message, _ := reader.ReadString('\n')
-		fmt.Print(message)
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
 	}
 }

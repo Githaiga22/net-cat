@@ -1,12 +1,23 @@
-package utils
+// utils.go
+package chat
 
 import (
 	"fmt"
-	"time"
+	"os"
+	"os/exec"
 )
 
-// Format a message with a timestamp and user name
-func FormatMessage(name, message string) string {
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	return fmt.Sprintf("[%s][%s]: %s", timestamp, name, message)
+func handleError(err error, message string) {
+	if err != nil {
+		fmt.Println(message, err)
+		os.Exit(1)
+	}
+}
+
+
+// Utility function to clear the terminal screen
+func clearTerminal() {
+	cmd := exec.Command("clear") // or "cls" for Windows
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }

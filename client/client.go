@@ -1,5 +1,5 @@
 // client.go
-package main
+package client
 
 import (
 	"bufio"
@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-func startClient(serverAddr, port string) {
+func StartClient(serverAddr, port string) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", serverAddr, port))
 	if err != nil {
 		fmt.Println("Error connecting to server:", err)

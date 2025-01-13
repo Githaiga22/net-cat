@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"netcat/chat"
 	"sync"
 	"time"
 )
@@ -17,8 +18,10 @@ var (
 
 func handleClient(conn net.Conn) {
 	defer conn.Close()
+
+	icon,_ := chat.OutputIcon()
 	fmt.Fprintf(conn, "\nWelcome to TCP-Chat!\n")
-	fmt.Fprintf(conn, "         _nnnn_\n        dGGGGMMb\n       @p~qp~~qMb\n")
+	fmt.Fprintf(conn, "%s\n",string(icon) )
 	fmt.Fprintf(conn, "[ENTER YOUR NAME]: ")
 
 	// Get the client's name
@@ -81,7 +84,7 @@ func broadcastMessage(message string) {
 
 var messageHistory []string
 
-func startServer(port string) {
+func StartServer(port string) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
 		log.Fatal("Error starting server:", err)

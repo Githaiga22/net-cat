@@ -1,5 +1,5 @@
 // utils.go
-package chat
+package utils
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ func handleError(err error, message string) {
 
 
 // Utility function to clear the terminal screen
-func clearTerminal() {
+func ClearTerminal() {
 	cmd := exec.Command("clear") // or "cls" for Windows
 	cmd.Stdout = os.Stdout
 	cmd.Run()

@@ -24,6 +24,14 @@ func handleClient(conn net.Conn) {
 	fmt.Fprintf(conn, "%s\n",string(icon) )
 	fmt.Fprintf(conn, "[ENTER YOUR NAME]: ")
 
+	// Send welcome message and prompt to enter name
+
+	flusher, ok := conn.(*net.TCPConn)
+
+	if ok {
+		flusher.SetLinger(0) // Ensure the connection is kept open
+	}
+
 	// Get the client's name
 	scanner := bufio.NewScanner(conn)
 	scanner.Scan()
@@ -91,7 +99,6 @@ func StartServer(port string) {
 	}
 	defer ln.Close()
 
-	fmt.Println("Listening on port:", port)
 	for {
 		conn, err := ln.Accept()
 		if err != nil {

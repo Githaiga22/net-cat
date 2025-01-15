@@ -33,22 +33,25 @@ func StartClient(serverAddr, port string) {
 	// Send name to server
 	fmt.Fprintf(conn, "%s\n", name)
 
-	// Handle sending and receiving messages
+	// Start receiving messages concurrently
 	go receiveMessages(conn)
 
-	// Read and send messages from user
+	// Handle sending and receiving messages
 	for {
 		var message string
 		fmt.Scanln(&message)
 		if message != "" {
-			fmt.Fprintf(conn, "%s\n", message)
+			fmt.Fprintf(conn, "%s\n", message) // Send message to server
 		}
 	}
 }
-
 func receiveMessages(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+		fmt.Println(scanner.Text()) // Print received messages
+	}
+
+	if scanner.Err() != nil {
+		fmt.Println("Error reading from server:", scanner.Err())
 	}
 }

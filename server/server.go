@@ -16,21 +16,17 @@ var (
 	clientsMux = sync.Mutex{}
 )
 
+// messageHistory stores chat history that can be sent to new clients
+var messageHistory []string
+
 func handleClient(conn net.Conn) {
 	defer conn.Close()
 
-	icon,_ := chat.OutputIcon()
+	// Send the welcome message and the ASCII art
+	icon, _ := chat.OutputIcon()
 	fmt.Fprintf(conn, "\nWelcome to TCP-Chat!\n")
-	fmt.Fprintf(conn, "%s\n",string(icon) )
+	fmt.Fprintf(conn, "%s\n", string(icon))
 	fmt.Fprintf(conn, "[ENTER YOUR NAME]: ")
-
-	// Send welcome message and prompt to enter name
-
-	flusher, ok := conn.(*net.TCPConn)
-
-	if ok {
-		flusher.SetLinger(0) // Ensure the connection is kept open
-	}
 
 	// Get the client's name
 	scanner := bufio.NewScanner(conn)
@@ -56,8 +52,12 @@ func handleClient(conn net.Conn) {
 		fmt.Fprintf(conn, msg)
 	}
 
-	// Handle receiving messages
-	for scanner.Scan() {
+	// Continuously handle messages from the client
+	for {
+		if !scanner.Scan() {
+			break // Exit loop if the client disconnects
+		}
+
 		message := scanner.Text()
 
 		// If message is empty, ignore
@@ -65,11 +65,12 @@ func handleClient(conn net.Conn) {
 			continue
 		}
 
-		// Format and broadcast message
+		// Format and broadcast message with timestamp
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
 		formattedMessage := fmt.Sprintf("[%s][%s]: %s\n", timestamp, clientName, message)
 		messageHistory = append(messageHistory, formattedMessage) // Save the message
 
+		// Broadcast the message to all connected clients
 		broadcastMessage(formattedMessage)
 	}
 
@@ -90,8 +91,6 @@ func broadcastMessage(message string) {
 	}
 }
 
-var messageHistory []string
-
 func StartServer(port string) {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
 	if err != nil {
@@ -99,6 +98,8 @@ func StartServer(port string) {
 	}
 	defer ln.Close()
 
+
+	// Accept new client connections
 	for {
 		conn, err := ln.Accept()
 		if err != nil {

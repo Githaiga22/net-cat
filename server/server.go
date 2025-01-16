@@ -44,13 +44,13 @@ func handleClient(conn net.Conn) {
 	clients[conn] = clientName
 	clientsMux.Unlock()
 
-	// Inform other clients that a new client has joined
-	broadcastMessage(fmt.Sprintf("%s has joined the chat...\n", clientName))
-
 	// Send previous messages to the client
 	for _, msg := range messageHistory {
 		fmt.Fprintf(conn, msg)
 	}
+
+	// Broadcast message that the client has joined
+	broadcastMessage(fmt.Sprintf("[%s][%s]: hello\n", time.Now().Format("2006-01-02 15:04:05"), clientName))
 
 	// Continuously handle messages from the client
 	for {
@@ -74,13 +74,13 @@ func handleClient(conn net.Conn) {
 		broadcastMessage(formattedMessage)
 	}
 
-	// Handle client leaving
+	// Handle client leaving with a timestamp
 	clientsMux.Lock()
 	delete(clients, conn)
 	clientsMux.Unlock()
 
-	// Broadcast client leaving
-	broadcastMessage(fmt.Sprintf("%s has left the chat...\n", clientName))
+	// Broadcast client leaving with timestamp
+	broadcastMessage(fmt.Sprintf("[%s][%s]: bye-bye!\n", time.Now().Format("2006-01-02 15:04:05"), clientName))
 }
 
 func broadcastMessage(message string) {

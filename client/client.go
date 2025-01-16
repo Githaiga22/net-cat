@@ -1,4 +1,3 @@
-// client.go
 package client
 
 import (
@@ -6,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 )
 
 func StartClient(serverAddr, port string) {
@@ -45,10 +45,20 @@ func StartClient(serverAddr, port string) {
 		}
 	}
 }
+
 func receiveMessages(conn net.Conn) {
 	scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text()) // Print received messages
+		line := scanner.Text()
+
+		// Check if it's a join/leave message or regular message
+		if line == "hello" {
+			// This is the greeting message when the client joins
+			fmt.Println(line) // Print the greeting with the timestamp
+		} else {
+			// Regular chat messages
+			fmt.Println(line)
+		}
 	}
 
 	if scanner.Err() != nil {

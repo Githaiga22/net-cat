@@ -6,14 +6,22 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"netcat/chat"
 	"sync"
 	"time"
+
+	"netcat/chat"
 )
 
+type Message struct {
+	sender  net.Conn
+	content string
+}
+
 var (
-	clients    = make(map[net.Conn]string)  // Store client connections with their names
-	clientsMux = sync.Mutex{}
+	clients       = make(map[net.Conn]string) // Store client connections with their names
+	clientsMux    = sync.Mutex{}
+	maxClients    = 10
+	activeClients int
 )
 
 // messageHistory stores chat history that can be sent to new clients
@@ -30,30 +38,47 @@ func handleClient(conn net.Conn) {
 
 	// Get the client's name
 	scanner := bufio.NewScanner(conn)
-	scanner.Scan()
-	clientName := scanner.Text()
+	clientName := ""
 
-	// Ensure the name is not empty
-	if clientName == "" {
-		fmt.Fprintf(conn, "Name cannot be empty.\n")
-		return
+	for {
+		if !scanner.Scan() {
+			return
+		}
+		clientName = scanner.Text()
+
+		// Ensure the name is not empty
+		if clientName == "" {
+			fmt.Fprintf(conn, "Name cannot be empty.\n")
+			return
+		}
+
+		if IsNameUnique(clientName) {
+			fmt.Fprintf(conn, "Name already taken. Choose another name.\n")
+			fmt.Fprintf(conn, "[ENTER YOUR NAME]: ")
+			continue
+		} else {
+			// Add client to map
+			clientsMux.Lock()
+			clients[conn] = clientName
+			clientsMux.Unlock()
+			// broadcast <- Message{}
+			break
+		}
+
 	}
-
-	// Add client to map
-	clientsMux.Lock()
-	clients[conn] = clientName
-	clientsMux.Unlock()
 
 	// Send previous messages to the client
 	for _, msg := range messageHistory {
-		fmt.Fprintf(conn, msg)
+		fmt.Fprintf(conn, "%s", msg)
 	}
 
 	// Broadcast message that the client has joined
-	broadcastMessage(fmt.Sprintf("[%s][%s]: hello\n", time.Now().Format("2006-01-02 15:04:05"), clientName))
+	broadcastMessage(fmt.Sprintf("\n%s has joined the chat\n", clientName), conn)
 
 	// Continuously handle messages from the client
 	for {
+		clientName = clients[conn]
+		broadcastMessage(fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), clientName), nil)
 		if !scanner.Scan() {
 			break // Exit loop if the client disconnects
 		}
@@ -67,27 +92,33 @@ func handleClient(conn net.Conn) {
 
 		// Format and broadcast message with timestamp
 		timestamp := time.Now().Format("2006-01-02 15:04:05")
-		formattedMessage := fmt.Sprintf("[%s][%s]: %s\n", timestamp, clientName, message)
-		messageHistory = append(messageHistory, formattedMessage) // Save the message
+		formattedMessage := fmt.Sprintf("\n[%s][%s]: %s\n", timestamp, clientName, message)
+		if message != "" {
+			messageHistory = append(messageHistory, formattedMessage) // Save the message
+		}
 
 		// Broadcast the message to all connected clients
-		broadcastMessage(formattedMessage)
+		broadcastMessage(formattedMessage, conn)
 	}
 
 	// Handle client leaving with a timestamp
 	clientsMux.Lock()
 	delete(clients, conn)
+	conn.Close()
 	clientsMux.Unlock()
 
 	// Broadcast client leaving with timestamp
-	broadcastMessage(fmt.Sprintf("[%s][%s]: bye-bye!\n", time.Now().Format("2006-01-02 15:04:05"), clientName))
+	broadcastMessage(fmt.Sprintf("\n%s has left the chat\n", clientName), conn)
 }
 
-func broadcastMessage(message string) {
+func broadcastMessage(message string, excludeConn net.Conn) {
 	clientsMux.Lock()
 	defer clientsMux.Unlock()
+
 	for client := range clients {
-		fmt.Fprintf(client, message)
+		if excludeConn != client {
+			fmt.Fprintf(client, "%s", message)
+		}
 	}
 }
 
@@ -98,7 +129,6 @@ func StartServer(port string) {
 	}
 	defer ln.Close()
 
-
 	// Accept new client connections
 	for {
 		conn, err := ln.Accept()
@@ -107,6 +137,32 @@ func StartServer(port string) {
 			continue
 		}
 
+		clientsMux.Lock()
+		if activeClients > maxClients {
+			clientsMux.Unlock()
+			conn.Close()
+			log.Println("COnnection refused: Max clients reached")
+
+			continue
+		}
+		activeClients++
+		clientsMux.Unlock()
+
 		go handleClient(conn) // Handle client connection in a goroutine
+
 	}
+}
+
+func IsNameUnique(clientName string) bool {
+	clientsMux.Lock()
+	nameExists := false
+	for _, name := range clients {
+		if name == clientName {
+			nameExists = true
+			break
+		}
+	}
+	clientsMux.Unlock()
+
+	return nameExists
 }

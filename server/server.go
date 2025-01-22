@@ -137,6 +137,7 @@ func StartServer(port string) {
         clientsMux.Lock()
         if activeClients >= maxClients {
             clientsMux.Unlock()
+			conn.Write([]byte("Server is full. Please try again later.\n"))
             conn.Close()
             log.Println("Connection refused: Max clients reached")
             continue

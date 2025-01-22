@@ -72,7 +72,7 @@ func handleClient(conn net.Conn) {
     }
 
     // Broadcast message that the client has joined
-    broadcastMessage(fmt.Sprintf("\n%s has joined the chat\n", clientName), conn)
+    broadcastMessage(fmt.Sprintf("%s has joined the chat\n", clientName), conn)
 
     // Continuously handle messages from the client
     for {
@@ -92,7 +92,7 @@ func handleClient(conn net.Conn) {
 
         // Format and broadcast message with timestamp
         timestamp := time.Now().Format("2006-01-02 15:04:05")
-        formattedMessage := fmt.Sprintf("\n[%s][%s]: %s\n", timestamp, clientName, message)
+        formattedMessage := fmt.Sprintf("[%s][%s]: %s\n", timestamp, clientName, message)
         messageHistory = append(messageHistory, formattedMessage) // Save the message
 
         // Broadcast the message to all connected clients
@@ -106,7 +106,7 @@ func handleClient(conn net.Conn) {
     clientsMux.Unlock()
 
     // Broadcast client leaving with timestamp
-    broadcastMessage(fmt.Sprintf("\n%s has left the chat\n", clientName), conn)
+    broadcastMessage(fmt.Sprintf("%s has left the chat\n", clientName), conn)
 }
 
 func broadcastMessage(message string, excludeConn net.Conn) {

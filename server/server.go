@@ -91,6 +91,7 @@ func handleClient(conn net.Conn) {
         // Format and broadcast message with timestamp
         timestamp := time.Now().Format("2006-01-02 15:04:05")
         formattedMessage := fmt.Sprintf("[%s][%s]: %s\n", timestamp, clientName, message)
+		conn.Write([]byte("\033[F\033[K"))
         messageHistory = append(messageHistory, formattedMessage) // Save the message
         conn.Write([]byte(formattedMessage))
         // Broadcast the message to all connected clients

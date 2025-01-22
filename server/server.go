@@ -76,9 +76,7 @@ func handleClient(conn net.Conn) {
 
     // Continuously handle messages from the client
     for {
-		clientName = clients[conn]
-		//write to the connection instead of calling broadcastMessage fn
-		conn.Write([]byte(fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), clientName)))
+		clientName = clients[conn]		
         if !scanner.Scan() {
             break // Exit loop if the client disconnects
         }
@@ -94,7 +92,7 @@ func handleClient(conn net.Conn) {
         timestamp := time.Now().Format("2006-01-02 15:04:05")
         formattedMessage := fmt.Sprintf("[%s][%s]: %s\n", timestamp, clientName, message)
         messageHistory = append(messageHistory, formattedMessage) // Save the message
-
+        conn.Write([]byte(formattedMessage))
         // Broadcast the message to all connected clients
         broadcastMessage(formattedMessage, conn)
     }

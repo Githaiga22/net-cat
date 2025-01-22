@@ -72,13 +72,11 @@ func handleClient(conn net.Conn) {
     }
 
     // Broadcast message that the client has joined
-    broadcastMessage(fmt.Sprintf("\n%s has joined the chat\n", clientName), conn)
+    broadcastMessage(fmt.Sprintf("%s has joined the chat\n", clientName), conn)
 
     // Continuously handle messages from the client
     for {
-		clientName = clients[conn]
-		//write to the connection instead of calling broadcastMessage fn
-		conn.Write([]byte(fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), clientName)))
+		clientName = clients[conn]		
         if !scanner.Scan() {
             break // Exit loop if the client disconnects
         }
@@ -92,9 +90,10 @@ func handleClient(conn net.Conn) {
 
         // Format and broadcast message with timestamp
         timestamp := time.Now().Format("2006-01-02 15:04:05")
-        formattedMessage := fmt.Sprintf("\n[%s][%s]: %s\n", timestamp, clientName, message)
+        formattedMessage := fmt.Sprintf("[%s][%s]: %s\n", timestamp, clientName, message)
+		conn.Write([]byte("\033[F\033[K"))
         messageHistory = append(messageHistory, formattedMessage) // Save the message
-
+        conn.Write([]byte(formattedMessage))
         // Broadcast the message to all connected clients
         broadcastMessage(formattedMessage, conn)
     }
@@ -106,7 +105,7 @@ func handleClient(conn net.Conn) {
     clientsMux.Unlock()
 
     // Broadcast client leaving with timestamp
-    broadcastMessage(fmt.Sprintf("\n%s has left the chat\n", clientName), conn)
+    broadcastMessage(fmt.Sprintf("%s has left the chat\n", clientName), conn)
 }
 
 func broadcastMessage(message string, excludeConn net.Conn) {
@@ -119,6 +118,7 @@ func broadcastMessage(message string, excludeConn net.Conn) {
         }
     }
 }
+
 
 func StartServer(port string) {
     ln, err := net.Listen("tcp", fmt.Sprintf(":%s", port))
@@ -138,6 +138,7 @@ func StartServer(port string) {
         clientsMux.Lock()
         if activeClients >= maxClients {
             clientsMux.Unlock()
+			conn.Write([]byte("Server is full. Please try again later.\n"))
             conn.Close()
             log.Println("Connection refused: Max clients reached")
             continue
